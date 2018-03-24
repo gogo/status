@@ -176,6 +176,30 @@ func TestFromErrorUnknownError(t *testing.T) {
 	}
 }
 
+func TestFromGRPCStatus(t *testing.T) {
+	code, message := codes.Internal, "test description"
+	detail := &rpc.RequestInfo{
+		RequestId:   "1234",
+		ServingData: "data",
+	}
+	a, err := types.MarshalAny(detail)
+	if err != nil {
+		t.Fatalf("types.MarshalAny(%#v) failed: %v", detail, err)
+	}
+	pb := gstatus.New(code, message).Proto()
+	pb.Details = append(pb.GetDetails(), (*any.Any)(a))
+	s := FromGRPCStatus(gstatus.FromProto(pb))
+	if s.Code() != code || s.Message() != message || s.Err() == nil {
+		t.Fatalf("FromError(%v) = %v; want <Code()=%s, Message()=%q, Err()!=nil>", err, s, code, message)
+	}
+	if len(s.Details()) != 1 {
+		t.Fatalf("(%#v).Details() = %v, wanted %v", s, s.Details(), detail)
+	}
+	if r, ok := s.Details()[0].(*rpc.RequestInfo); !ok || !reflect.DeepEqual(r, detail) {
+		t.Fatalf("(%#v).Details()[0] = %v, wanted %v", s, s.Details()[0], detail)
+	}
+}
+
 func TestConvertKnownError(t *testing.T) {
 	code, message := codes.Internal, "test description"
 	err := Error(code, message)

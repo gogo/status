@@ -34,6 +34,8 @@ import (
 	"github.com/gogo/googleapis/google/rpc"
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"
+	"github.com/golang/protobuf/ptypes/any"
+	spb "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -43,39 +45,21 @@ import (
 type statusError rpc.Status
 
 func (se *statusError) Error() string {
-	return fmt.Sprintf("rpc error: code = %s desc = %s", se.GetCode(), se.GetMessage())
+	p := (*rpc.Status)(se)
+	return fmt.Sprintf("rpc error: code = %s desc = %s", codes.Code(p.GetCode()), p.GetMessage())
 }
 
-func (se *statusError) status() *Status {
-	return &Status{s: (*rpc.Status)(se)}
-}
-
-func (se *statusError) GetCode() codes.Code {
-	return codes.Code((*rpc.Status)(se).GetCode())
-}
-
-func (se *statusError) GetMessage() string {
-	return (*rpc.Status)(se).GetMessage()
-}
-
-type anyWrapper types.Any
-
-func (a *anyWrapper) GetTypeURL() string {
-	return (*types.Any)(a).GetTypeUrl()
-}
-
-func (a *anyWrapper) GetValue() []byte {
-	return (*types.Any)(a).GetValue()
-}
-
-func (se *statusError) GetDetails() (details []interface {
-	GetTypeURL() string
-	GetValue() []byte
-}) {
-	for _, detail := range (*rpc.Status)(se).GetDetails() {
-		details = append(details, (*anyWrapper)(detail))
+// Status converts the gogo/statusError to a grpc/status.
+func (se *statusError) Status() *status.Status {
+	p := (*rpc.Status)(se)
+	s := &spb.Status{
+		Code:    p.GetCode(),
+		Message: p.GetMessage(),
 	}
-	return details
+	for _, detail := range p.GetDetails() {
+		s.Details = append(s.GetDetails(), (*any.Any)(detail))
+	}
+	return status.FromProto(s)
 }
 
 // Status represents an RPC status code, message, and details.  It is immutable
@@ -154,21 +138,23 @@ func FromError(err error) (s *Status, ok bool) {
 	if err == nil {
 		return &Status{s: &rpc.Status{Code: int32(codes.OK)}}, true
 	}
-	if se, ok := err.(*statusError); ok {
-		return se.status(), true
-	}
-	// Convert from grpc/status error, if possible
-	if st, ok := status.FromError(err); ok {
-		pb := &rpc.Status{
-			Code:    int32(st.Code()),
-			Message: st.Message(),
-		}
-		for _, detail := range st.Proto().GetDetails() {
-			pb.Details = append(pb.GetDetails(), (*types.Any)(detail))
-		}
-		return FromProto(pb), true
+	if se, ok := err.(interface{ Status() *status.Status }); ok {
+		return FromGRPCStatus(se.Status()), true
 	}
 	return New(codes.Unknown, err.Error()), false
+}
+
+// FromGRPCStatus converts a grpc.Status to gogo.Status.
+func FromGRPCStatus(st *status.Status) *Status {
+	p := st.Proto()
+	pb := &rpc.Status{
+		Code:    p.GetCode(),
+		Message: p.GetMessage(),
+	}
+	for _, detail := range p.GetDetails() {
+		pb.Details = append(pb.GetDetails(), (*types.Any)(detail))
+	}
+	return FromProto(pb)
 }
 
 // Convert is a convenience function which removes the need to handle the
@@ -221,8 +207,8 @@ func Code(err error) codes.Code {
 	if err == nil {
 		return codes.OK
 	}
-	if se, ok := err.(*statusError); ok {
-		return se.status().Code()
+	if se, ok := err.(interface{ Status() *status.Status }); ok {
+		return se.Status().Code()
 	}
 	return codes.Unknown
 }
