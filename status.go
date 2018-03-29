@@ -50,7 +50,7 @@ func (se *statusError) Error() string {
 }
 
 // Status converts the gogo/statusError to a grpc/status.
-func (se *statusError) Status() *status.Status {
+func (se *statusError) GRPCStatus() *status.Status {
 	p := (*rpc.Status)(se)
 	s := &spb.Status{
 		Code:    p.GetCode(),
@@ -138,8 +138,8 @@ func FromError(err error) (s *Status, ok bool) {
 	if err == nil {
 		return &Status{s: &rpc.Status{Code: int32(codes.OK)}}, true
 	}
-	if se, ok := err.(interface{ Status() *status.Status }); ok {
-		return FromGRPCStatus(se.Status()), true
+	if se, ok := err.(interface{ GRPCStatus() *status.Status }); ok {
+		return FromGRPCStatus(se.GRPCStatus()), true
 	}
 	return New(codes.Unknown, err.Error()), false
 }
