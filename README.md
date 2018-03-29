@@ -35,7 +35,7 @@ License applies.
 
 ### Changes
 
-The changes applies include changing the use of the
+The changes applied include changing the use of the
 `golang/protobuf` packages to `gogo/protobuf`, and changing the
 generated files from `google.golang.org/genproto/googleapis` to
 `github.com/gogo/googleapis/`.
