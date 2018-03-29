@@ -4,6 +4,9 @@ This is a convenience package for users of `gogo/protobuf` to be able to use
 their `gogo/protobuf` generated message easily and transparently with the
 gRPC status error structure.
 
+It requires [Go gRPC version 1.11](https://github.com/grpc/grpc-go/releases/tag/v1.11.0)
+or above to successfully transmit statuses over the gRPC transport.
+
 ## Use
 
 Use as you would the normal `grpc/status` package:
@@ -41,17 +44,4 @@ generated files from `google.golang.org/genproto/googleapis` to
 `github.com/gogo/googleapis/`.
 
 We've also created an implicit interface fulfilled by all `gogo/status`
-errors, for use in gRPC pending
-[https://github.com/grpc/grpc-go/pull/1927](https://github.com/grpc/grpc-go/pull/1927).
-
-```go
-type StatusError interface {
-    error
-    GetCode() codes.Code
-    GetMessage() string
-    GetDetails() []interface{
-        GetTypeURL() string
-        GetValue() []byte
-    }
-}
-```
+errors, for use with `grpc/status` and the gRPC runtime libraries.
