@@ -218,6 +218,37 @@ func TestConvertUnknownError(t *testing.T) {
 	}
 }
 
+func TestCode(t *testing.T) {
+	tests := []struct {
+		err error
+		code codes.Code
+	}{
+		{
+			err: nil,
+			code: codes.OK,
+		},
+		{
+			err: errors.New("unknown error"),
+			code: codes.Unknown,
+		},
+		{
+			err: Errorf(codes.Internal, "internal error"),
+			code: codes.Internal,
+		},
+		{
+			err: Errorf(codes.Unknown, "explicitly unknown error"),
+			code: codes.Unknown,
+		},
+	}
+
+	for _, tc := range tests {
+		code := Code(tc.err)
+		if code != tc.code {
+			t.Fatalf("Code(%v) = %v; want %v", tc.err, code, tc.code)
+		}
+	}
+}
+
 func TestStatus_ErrorDetails(t *testing.T) {
 	tests := []struct {
 		code    codes.Code
