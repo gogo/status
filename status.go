@@ -207,8 +207,8 @@ func Code(err error) codes.Code {
 	if err == nil {
 		return codes.OK
 	}
-	if se, ok := err.(interface{ Status() *status.Status }); ok {
-		return se.Status().Code()
+	if se, ok := err.(interface{ GRPCStatus() *status.Status }); ok {
+		return se.GRPCStatus().Code()
 	}
 	return codes.Unknown
 }
