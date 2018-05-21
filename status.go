@@ -57,7 +57,10 @@ func (se *statusError) GRPCStatus() *status.Status {
 		Message: p.GetMessage(),
 	}
 	for _, detail := range p.GetDetails() {
-		s.Details = append(s.GetDetails(), (*any.Any)(detail))
+		s.Details = append(s.GetDetails(), &any.Any{
+			TypeUrl: detail.GetTypeUrl(),
+			Value:   detail.GetValue(),
+		})
 	}
 	return status.FromProto(s)
 }
@@ -152,7 +155,10 @@ func FromGRPCStatus(st *status.Status) *Status {
 		Message: p.GetMessage(),
 	}
 	for _, detail := range p.GetDetails() {
-		pb.Details = append(pb.GetDetails(), (*types.Any)(detail))
+		pb.Details = append(pb.GetDetails(), &types.Any{
+			TypeUrl: detail.GetTypeUrl(),
+			Value:   detail.GetValue(),
+		})
 	}
 	return FromProto(pb)
 }
