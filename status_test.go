@@ -154,7 +154,10 @@ func TestFromErrorGRPCStatus(t *testing.T) {
 		t.Fatalf("types.MarshalAny(%#v) failed: %v", detail, err)
 	}
 	pb := gstatus.New(code, message).Proto()
-	pb.Details = append(pb.GetDetails(), (*any.Any)(a))
+	pb.Details = append(pb.GetDetails(), &any.Any{
+		TypeUrl: a.GetTypeUrl(),
+		Value:   a.GetValue(),
+	})
 	s, ok := FromError(gstatus.ErrorProto(pb))
 	if !ok || s.Code() != code || s.Message() != message || s.Err() == nil {
 		t.Fatalf("FromError(%v) = %v, %v; want <Code()=%s, Message()=%q, Err()!=nil>, true", err, s, ok, code, message)
@@ -187,7 +190,10 @@ func TestFromGRPCStatus(t *testing.T) {
 		t.Fatalf("types.MarshalAny(%#v) failed: %v", detail, err)
 	}
 	pb := gstatus.New(code, message).Proto()
-	pb.Details = append(pb.GetDetails(), (*any.Any)(a))
+	pb.Details = append(pb.GetDetails(), &any.Any{
+		TypeUrl: a.GetTypeUrl(),
+		Value:   a.GetValue(),
+	})
 	s := FromGRPCStatus(gstatus.FromProto(pb))
 	if s.Code() != code || s.Message() != message || s.Err() == nil {
 		t.Fatalf("FromError(%v) = %v; want <Code()=%s, Message()=%q, Err()!=nil>", err, s, code, message)
@@ -220,23 +226,23 @@ func TestConvertUnknownError(t *testing.T) {
 
 func TestCode(t *testing.T) {
 	tests := []struct {
-		err error
+		err  error
 		code codes.Code
 	}{
 		{
-			err: nil,
+			err:  nil,
 			code: codes.OK,
 		},
 		{
-			err: errors.New("unknown error"),
+			err:  errors.New("unknown error"),
 			code: codes.Unknown,
 		},
 		{
-			err: Errorf(codes.Internal, "internal error"),
+			err:  Errorf(codes.Internal, "internal error"),
 			code: codes.Internal,
 		},
 		{
-			err: Errorf(codes.Unknown, "explicitly unknown error"),
+			err:  Errorf(codes.Unknown, "explicitly unknown error"),
 			code: codes.Unknown,
 		},
 	}
